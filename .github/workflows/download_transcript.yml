@@ -1,0 +1,33 @@
+name: Download transcript
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: 'Search text, e.g. "House of Assembly Tuesday 19 August 2025"'
+        required: true
+        default: 'House of Assembly Tuesday 19 August 2025'
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install chromium
+      - name: Download transcript
+        run: |
+          python download_transcript.py "${{ github.event.inputs.query }}"
+      - name: Commit downloaded transcript
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add transcripts/*.txt || echo 'No transcripts'
+          git commit -m "Add transcript for ${{ github.event.inputs.query }}" || echo 'No changes'
+          git push
