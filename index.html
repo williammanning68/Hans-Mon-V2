@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Hansard Downloader</title>
+</head>
+<body>
+<h1>Tasmanian Hansard Downloader</h1>
+<p>Enter a transcript title and trigger the GitHub Action to download it.</p>
+<form id="dispatch-form">
+  <label>GitHub token: <input id="token" type="password" required></label><br>
+  <label>Search query: <input id="query" size="60" value="House of Assembly Tuesday 19 August 2025" required></label><br>
+  <button type="submit">Fetch Transcript</button>
+</form>
+<pre id="result"></pre>
+<script>
+  const owner = 'YOUR_GITHUB_USERNAME';
+  const repo = 'Hans-Mon-V2';
+  const workflow = 'download_transcript.yml';
+  document.getElementById('dispatch-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = document.getElementById('token').value.trim();
+    const query = document.getElementById('query').value.trim();
+    const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ref: 'main', inputs: {query}})
+    });
+    const result = document.getElementById('result');
+    if (resp.ok) {
+      result.textContent = 'Workflow dispatched. Check the Actions tab on GitHub.';
+    } else {
+      result.textContent = `Error: ${resp.status} ${resp.statusText}`;
+    }
+  });
+</script>
+</body>
+</html>
