@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Tasmania Hansard Fetcher</title>
+</head>
+<body>
+  <h1>Tasmania Hansard Fetcher</h1>
+  <p>Enter the exact transcript title and click "Fetch" to attempt to retrieve the document link.</p>
+  <input id="query" type="text" size="80" value="House of Assembly Tuesday 19 August 2025" />
+  <button id="fetchBtn">Fetch</button>
+  <pre id="output"></pre>
+  <script>
+    async function fetchHansard() {
+      const query = document.getElementById('query').value;
+      const searchUrl = 'https://search.parliament.tas.gov.au/adv/hahansard?searchTerm=' + encodeURIComponent(query);
+      const output = document.getElementById('output');
+      output.textContent = `Searching for ${query}\n`;
+      try {
+        const res = await fetch(searchUrl);
+        if (!res.ok) {
+          throw new Error('HTTP ' + res.status);
+        }
+        const html = await res.text();
+        const match = html.match(/href="([^"]*House%20of%20Assembly%20Tuesday%2019%20August%202025[^"]*)"/i);
+        if (match) {
+          const url = new URL(match[1], searchUrl).href;
+          output.textContent += 'Found transcript link:\n' + url;
+        } else {
+          output.textContent += 'Transcript link not found in search results.';
+        }
+      } catch (err) {
+        output.textContent += 'Error: ' + err.message;
+      }
+    }
+    document.getElementById('fetchBtn').addEventListener('click', fetchHansard);
+  </script>
+</body>
+</html>
