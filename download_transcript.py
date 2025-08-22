@@ -9,7 +9,6 @@ issue.
 Usage:
     python download_transcript.py "House of Assembly Tuesday 19 August 2025"
 """
-import os
 import re
 import sys
 from pathlib import Path
