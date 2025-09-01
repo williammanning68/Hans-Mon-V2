@@ -1,0 +1,47 @@
+name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          nohup ollama serve > /tmp/ollama.log 2>&1 &
+          sleep 2
+          ollama pull llama3.2:1b
+
+      - name: Build diff and ask the model
+        id: ask
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          git fetch origin $BASE
+          DIFF="$(git diff --unified=0 --no-color origin/$BASE...HEAD | sed 's/"/\\"/g')"
+          PAYLOAD=$(jq -n --arg diff "$DIFF" '{
+            model:"llama3.2:1b",
+            stream:false,
+            messages:[
+              {"role":"system","content":"You are a senior code reviewer. Be brief, actionable, and specific. Output Markdown."},
+              {"role":"user","content":("Summarize this PR diff and suggest improvements:\n" + $diff)}
+            ]}')
+          RESP=$(curl -s http://127.0.0.1:11434/api/chat \
+            -H "Content-Type: application/json" -d "$PAYLOAD" | jq -r '.message.content')
+          printf "%s\n" "$RESP" > review.md
+
+      - name: Comment on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment ${{ github.event.pull_request.number }} -F review.md
